@@ -3,6 +3,7 @@ export interface NewsItem {
   source: string;
   url: string;
   date: string;
+  content?: string;
 }
 
 export interface StockAnalysis {
@@ -12,41 +13,46 @@ export interface StockAnalysis {
   summary: string;
   recommendation: 'BUY' | 'SELL' | 'HOLD';
   news: NewsItem[];
+  reasoning?: string[];
+  price?: {
+    current: number;
+    change: number;
+    changePercent: number;
+  };
 }
 
+import { searchStockNews } from './news';
+import { analyzeSentiment } from './ai-analysis';
+import { getStockQuote, formatStockSymbol } from './stock-data';
+
 export async function analyzeStock(query: string): Promise<StockAnalysis> {
-  // TODO: Replace with real Tavily/SerpAPI search
-  // const searchResults = await searchWeb(`latest news analysis ${query} stock`);
+  // Format the symbol (add .NS for Indian stocks if needed)
+  const symbol = formatStockSymbol(query.toUpperCase().trim());
   
-  // TODO: Replace with real LLM call
-  // const analysis = await llm.generate(...)
+  // Fetch stock quote and news in parallel
+  const [quote, news] = await Promise.all([
+    getStockQuote(symbol),
+    searchStockNews(symbol),
+  ]);
 
-  // Mock implementation
-  await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate latency
+  // Get price data if available
+  const priceData = quote ? {
+    current: quote.price,
+    change: quote.change,
+    changePercent: quote.changePercent,
+  } : undefined;
 
-  const isPositive = Math.random() > 0.5;
+  // Analyze sentiment using AI
+  const sentimentAnalysis = await analyzeSentiment(symbol, news, priceData);
   
   return {
-    symbol: query.toUpperCase(),
-    sentiment: isPositive ? 'Bullish' : 'Bearish',
-    score: isPositive ? 75 + Math.floor(Math.random() * 20) : 25 + Math.floor(Math.random() * 20),
-    summary: isPositive 
-      ? `Recent news for ${query} suggests strong momentum driven by positive earnings reports and sector growth.`
-      : `Market sentiment for ${query} is cautious due to recent regulatory headwinds and mixed quarterly results.`,
-    recommendation: isPositive ? 'BUY' : 'SELL',
-    news: [
-      {
-        title: `${query} Q4 Earnings Beat Expectations`,
-        source: 'Financial Times',
-        url: '#',
-        date: new Date().toISOString().split('T')[0]
-      },
-      {
-        title: `Why investors are watching ${query} closely`,
-        source: 'CNBC',
-        url: '#',
-        date: new Date(Date.now() - 86400000).toISOString().split('T')[0]
-      }
-    ]
+    symbol,
+    sentiment: sentimentAnalysis.sentiment,
+    score: sentimentAnalysis.score,
+    summary: sentimentAnalysis.summary,
+    recommendation: sentimentAnalysis.recommendation,
+    reasoning: sentimentAnalysis.reasoning,
+    news,
+    price: priceData,
   };
 }
