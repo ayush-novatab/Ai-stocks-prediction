@@ -1,5 +1,4 @@
 import StockSearch from '@/components/stock-search'
-import Watchlist from '@/components/watchlist'
 
 export default function Home() {
   return (
@@ -20,14 +19,7 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-          <div className="lg:col-span-3">
-            <StockSearch />
-          </div>
-          <div className="lg:col-span-1">
-            <Watchlist />
-          </div>
-        </div>
+        <StockSearch />
       </div>
 
       <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8 text-center text-gray-500 max-w-4xl">
