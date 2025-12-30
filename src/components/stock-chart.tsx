@@ -386,64 +386,6 @@ export default function StockChart({ symbol }: StockChartProps) {
                 </div>
               </div>
             )}
-
-            {/* Bollinger Bands */}
-            {indicators.bollingerBands && (
-              <div className="mt-4 grid grid-cols-3 gap-4">
-                <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-                  <div className="text-sm text-muted-foreground mb-1">BB Upper</div>
-                  <div className="text-xl font-bold text-red-400">
-                    {formatPrice(indicators.bollingerBands.upper)}
-                  </div>
-                </div>
-                <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-                  <div className="text-sm text-muted-foreground mb-1">BB Middle</div>
-                  <div className="text-xl font-bold text-white">
-                    {formatPrice(indicators.bollingerBands.middle)}
-                  </div>
-                </div>
-                <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-                  <div className="text-sm text-muted-foreground mb-1">BB Lower</div>
-                  <div className="text-xl font-bold text-green-400">
-                    {formatPrice(indicators.bollingerBands.lower)}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Stochastic Oscillator */}
-            {indicators.stochastic && (
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-                  <div className="text-sm text-muted-foreground mb-1">Stochastic %K</div>
-                  <div className={`text-2xl font-bold ${
-                    indicators.stochastic.k > 80 ? 'text-red-500' :
-                    indicators.stochastic.k < 20 ? 'text-green-500' :
-                    'text-white'
-                  }`}>
-                    {indicators.stochastic.k.toFixed(2)}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {indicators.stochastic.k > 80 ? 'Overbought' :
-                     indicators.stochastic.k < 20 ? 'Oversold' :
-                     'Neutral'}
-                  </div>
-                </div>
-                <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-                  <div className="text-sm text-muted-foreground mb-1">Stochastic %D</div>
-                  <div className={`text-2xl font-bold ${
-                    indicators.stochastic.d > 80 ? 'text-red-500' :
-                    indicators.stochastic.d < 20 ? 'text-green-500' :
-                    'text-white'
-                  }`}>
-                    {indicators.stochastic.d.toFixed(2)}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Signal Line
-                  </div>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
       )}

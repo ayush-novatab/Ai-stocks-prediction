@@ -7,9 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import StockChart from "@/components/stock-chart"
-import { WatchlistButton } from "@/components/watchlist"
-import PriceAlerts from "@/components/price-alerts"
-import Fundamentals from "@/components/fundamentals"
 import type { StockAnalysis } from "@/lib/agent"
 import { formatCurrency } from "@/lib/currency"
 
@@ -108,7 +105,6 @@ export default function StockSearch() {
                       )}>
                         {result.recommendation}
                       </span>
-                      <WatchlistButton symbol={result.symbol} />
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">AI Confidence Score: {result.score}/100</p>
                   </div>
@@ -170,12 +166,6 @@ export default function StockSearch() {
 
             {/* Stock Chart */}
             <StockChart symbol={result.symbol} />
-
-            {/* Fundamentals */}
-            <Fundamentals symbol={result.symbol} />
-
-            {/* Price Alerts */}
-            <PriceAlerts symbol={result.symbol} currentPrice={result.price?.current} />
           </motion.div>
         )}
       </AnimatePresence>
