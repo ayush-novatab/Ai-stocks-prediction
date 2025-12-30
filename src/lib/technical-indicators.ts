@@ -10,6 +10,15 @@ export interface TechnicalIndicators {
   sma20: number;
   sma50: number;
   sma200: number;
+  bollingerBands?: {
+    upper: number;
+    middle: number;
+    lower: number;
+  };
+  stochastic?: {
+    k: number;
+    d: number;
+  };
 }
 
 /**
@@ -77,6 +86,86 @@ export function calculateMACD(prices: number[]): { macd: number; signal: number;
 }
 
 /**
+ * Calculate Bollinger Bands
+ */
+export function calculateBollingerBands(
+  prices: number[],
+  period: number = 20,
+  stdDev: number = 2
+): { upper: number; middle: number; lower: number } {
+  if (prices.length < period) {
+    return { upper: 0, middle: 0, lower: 0 };
+  }
+
+  const slice = prices.slice(-period);
+  const sma = slice.reduce((a, b) => a + b, 0) / period;
+  
+  // Calculate standard deviation
+  const variance = slice.reduce((sum, price) => sum + Math.pow(price - sma, 2), 0) / period;
+  const standardDeviation = Math.sqrt(variance);
+
+  return {
+    upper: Math.round((sma + stdDev * standardDeviation) * 100) / 100,
+    middle: Math.round(sma * 100) / 100,
+    lower: Math.round((sma - stdDev * standardDeviation) * 100) / 100,
+  };
+}
+
+/**
+ * Calculate Stochastic Oscillator
+ */
+export function calculateStochastic(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  kPeriod: number = 14,
+  dPeriod: number = 3
+): { k: number; d: number } {
+  if (highs.length < kPeriod || lows.length < kPeriod || closes.length < kPeriod) {
+    return { k: 50, d: 50 };
+  }
+
+  const recentHighs = highs.slice(-kPeriod);
+  const recentLows = lows.slice(-kPeriod);
+  const recentCloses = closes.slice(-kPeriod);
+
+  const highestHigh = Math.max(...recentHighs);
+  const lowestLow = Math.min(...recentLows);
+  const currentClose = recentCloses[recentCloses.length - 1];
+
+  if (highestHigh === lowestLow) {
+    return { k: 50, d: 50 };
+  }
+
+  const k = ((currentClose - lowestLow) / (highestHigh - lowestLow)) * 100;
+
+  // Calculate %D (3-period SMA of %K)
+  let d = k;
+  if (closes.length >= kPeriod + dPeriod - 1) {
+    const kValues: number[] = [];
+    for (let i = closes.length - dPeriod; i < closes.length; i++) {
+      const periodHighs = highs.slice(i - kPeriod + 1, i + 1);
+      const periodLows = lows.slice(i - kPeriod + 1, i + 1);
+      const periodCloses = closes.slice(i - kPeriod + 1, i + 1);
+      const hh = Math.max(...periodHighs);
+      const ll = Math.min(...periodLows);
+      const cc = periodCloses[periodCloses.length - 1];
+      if (hh !== ll) {
+        kValues.push(((cc - ll) / (hh - ll)) * 100);
+      } else {
+        kValues.push(50);
+      }
+    }
+    d = kValues.reduce((a, b) => a + b, 0) / kValues.length;
+  }
+
+  return {
+    k: Math.round(k * 100) / 100,
+    d: Math.round(d * 100) / 100,
+  };
+}
+
+/**
  * Calculate all technical indicators for a stock
  */
 export function calculateTechnicalIndicators(data: StockPriceData[]): TechnicalIndicators {
@@ -91,11 +180,24 @@ export function calculateTechnicalIndicators(data: StockPriceData[]): TechnicalI
   }
 
   const closes = data.map(d => d.close);
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  
   const rsi = calculateRSI(closes);
   const macd = calculateMACD(closes);
   const sma20 = calculateSMA(closes, Math.min(20, closes.length));
   const sma50 = calculateSMA(closes, Math.min(50, closes.length));
   const sma200 = calculateSMA(closes, Math.min(200, closes.length));
+  
+  // Calculate Bollinger Bands (only if we have enough data)
+  const bollingerBands = closes.length >= 20 
+    ? calculateBollingerBands(closes, 20, 2)
+    : undefined;
+  
+  // Calculate Stochastic Oscillator (only if we have enough data)
+  const stochastic = closes.length >= 14 && highs.length >= 14 && lows.length >= 14
+    ? calculateStochastic(highs, lows, closes, 14, 3)
+    : undefined;
 
   return {
     rsi: Math.round(rsi * 100) / 100,
@@ -107,6 +209,8 @@ export function calculateTechnicalIndicators(data: StockPriceData[]): TechnicalI
     sma20: Math.round(sma20 * 100) / 100,
     sma50: Math.round(sma50 * 100) / 100,
     sma200: Math.round(sma200 * 100) / 100,
+    bollingerBands,
+    stochastic,
   };
 }
 
