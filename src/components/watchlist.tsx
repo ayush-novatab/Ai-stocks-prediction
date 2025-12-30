@@ -23,6 +23,7 @@ export default function Watchlist() {
     return () => {
       window.removeEventListener('watchlist-updated', handleUpdate)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadWatchlist = () => {

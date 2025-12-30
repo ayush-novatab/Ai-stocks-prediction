@@ -19,6 +19,7 @@ export default function PriceAlerts({ symbol, currentPrice }: { symbol: string; 
 
   useEffect(() => {
     loadAlerts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol])
 
   const loadAlerts = () => {

@@ -15,6 +15,7 @@ export default function Fundamentals({ symbol }: FundamentalsProps) {
 
   useEffect(() => {
     fetchFundamentals()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol])
 
   const fetchFundamentals = async () => {
