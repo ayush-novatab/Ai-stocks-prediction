@@ -6,24 +6,86 @@ export interface SentimentAnalysis {
   reasoning: string[];
 }
 
-// Free sentiment analysis using keyword-based approach
-function analyzeTextSentiment(text: string): number {
+// Enhanced sentiment analysis using Natural.js (server-side only)
+let natural: any = null;
+
+async function getNatural() {
+  // Natural.js only works server-side
+  if (typeof window !== 'undefined') {
+    return null; // Skip on client-side
+  }
+  
+  // Server-side: use dynamic import
+  if (!natural) {
+    try {
+      natural = await import('natural');
+    } catch (error) {
+      console.warn('Natural.js not available, using keyword-based analysis');
+      return null;
+    }
+  }
+  return natural;
+}
+
+// Free sentiment analysis using Natural.js + keyword-based approach
+async function analyzeTextSentiment(text: string): Promise<number> {
+  // Try Natural.js first (server-side only)
+  const naturalLib = await getNatural();
+  
+  if (naturalLib) {
+    try {
+      const { SentimentAnalyzer, PorterStemmer } = naturalLib;
+      
+      // Use Natural.js SentimentAnalyzer
+      const analyzer = new SentimentAnalyzer('English', PorterStemmer, ['negation']);
+      const tokens = text.toLowerCase().split(/\W+/).filter(token => token.length > 0);
+      
+      if (tokens.length > 0) {
+        const analysis = analyzer.getSentiment(tokens);
+        
+        // Natural.js returns -1 to 1, convert to 0-100 scale
+        // -1 (very negative) -> 0, 0 (neutral) -> 50, 1 (very positive) -> 100
+        const naturalScore = Math.round((analysis + 1) * 50);
+        
+        // Combine with keyword-based approach for financial context
+        const keywordScore = analyzeTextSentimentFallback(text);
+        
+        // Weighted average: 60% Natural.js, 40% keyword-based (for financial context)
+        const finalScore = Math.round(naturalScore * 0.6 + keywordScore * 0.4);
+        
+        return Math.max(0, Math.min(100, finalScore));
+      }
+    } catch (error) {
+      console.error('Error in Natural.js sentiment analysis:', error);
+      // Fall through to keyword-based approach
+    }
+  }
+  
+  // Fallback to enhanced keyword-based approach
+  return analyzeTextSentimentFallback(text);
+}
+
+// Enhanced keyword-based sentiment analysis (fallback and primary method)
+function analyzeTextSentimentFallback(text: string): number {
   const lowerText = text.toLowerCase();
   
-  // Bullish keywords
+  // Enhanced financial-specific keywords
   const bullishKeywords = [
     'surge', 'rally', 'gain', 'rise', 'up', 'bullish', 'positive', 'growth',
     'beat', 'exceed', 'outperform', 'strong', 'profit', 'earnings', 'revenue',
     'upgrade', 'buy', 'outperform', 'strong buy', 'momentum', 'breakthrough',
-    'record', 'high', 'soar', 'jump', 'climb', 'advance', 'boost', 'increase'
+    'record', 'high', 'soar', 'jump', 'climb', 'advance', 'boost', 'increase',
+    'dividend', 'buyback', 'acquisition', 'merger', 'expansion', 'success',
+    'outstanding', 'excellent', 'robust', 'thriving', 'prosperous'
   ];
   
-  // Bearish keywords
   const bearishKeywords = [
     'drop', 'fall', 'decline', 'down', 'bearish', 'negative', 'loss', 'miss',
     'disappoint', 'weak', 'concern', 'worry', 'risk', 'sell', 'underperform',
     'downgrade', 'crash', 'plunge', 'tumble', 'slump', 'slide', 'decrease',
-    'recession', 'crisis', 'volatility', 'uncertainty', 'headwind', 'challenge'
+    'recession', 'crisis', 'volatility', 'uncertainty', 'headwind', 'challenge',
+    'lawsuit', 'investigation', 'regulatory', 'fine', 'penalty', 'failure',
+    'struggling', 'declining', 'troubled', 'risky', 'uncertain'
   ];
   
   let bullishCount = 0;
@@ -42,7 +104,6 @@ function analyzeTextSentiment(text: string): number {
   const total = bullishCount + bearishCount;
   if (total === 0) return 50; // Neutral
   
-  // Return score from 0-100 (0 = very bearish, 100 = very bullish)
   return Math.round((bullishCount / total) * 100);
 }
 
@@ -56,8 +117,8 @@ export async function analyzeSentiment(
     .map(item => `${item.title} ${item.content || ''}`)
     .join(' ');
   
-  // Calculate sentiment score from news
-  const newsSentimentScore = analyzeTextSentiment(allText);
+  // Calculate sentiment score from news using Natural.js
+  const newsSentimentScore = await analyzeTextSentiment(allText);
   
   // Factor in price movement
   let priceSentimentScore = 50; // Neutral baseline
@@ -126,15 +187,13 @@ export async function analyzeSentiment(
     }
   }
   
-  const bullishNewsCount = newsItems.filter(item => {
-    const score = analyzeTextSentiment(`${item.title} ${item.content || ''}`);
-    return score > 55;
-  }).length;
+  // Analyze each news item individually (async)
+  const newsScores = await Promise.all(
+    newsItems.map(item => analyzeTextSentiment(`${item.title} ${item.content || ''}`))
+  );
   
-  const bearishNewsCount = newsItems.filter(item => {
-    const score = analyzeTextSentiment(`${item.title} ${item.content || ''}`);
-    return score < 45;
-  }).length;
+  const bullishNewsCount = newsScores.filter(score => score > 55).length;
+  const bearishNewsCount = newsScores.filter(score => score < 45).length;
   
   if (bullishNewsCount > bearishNewsCount) {
     reasoning.push(`${bullishNewsCount} out of ${newsItems.length} recent news items show positive sentiment`);
